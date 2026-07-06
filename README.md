@@ -38,6 +38,11 @@ const frontmatter = normalizeFrontmatter(pageData, {
 });
 ```
 
+Summary generation is opt-in. When `ensureSummary: true` is passed, the
+normalizer uses `frontmatter.description` first. It falls back to `pageData.src`
+only when that source is present, and strips leading YAML frontmatter before
+creating the summary.
+
 Legacy content that still receives nested `cover.image` can opt in explicitly:
 
 ```ts

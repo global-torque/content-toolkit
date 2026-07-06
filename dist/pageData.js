@@ -1,6 +1,7 @@
 import { getFilerImageSrcset } from './filerImage.js';
 import { transliteratedUrlFormat, urlFormat } from './url.js';
 const DEFAULT_IMAGE = '/images/sharing.png';
+const DEFAULT_SUMMARY_LENGTH = 200;
 export const legacyCoverNormalizeFrontmatterOptions = {
     ensureSlug: true,
     imageSrcset: false,
@@ -40,6 +41,34 @@ function mapLegacyCoverImage(frontmatter) {
     }
     delete frontmatter.cover;
 }
+function stripFrontmatter(source) {
+    return source.replace(/^---[^\S\r\n]*\r?\n[\s\S]*?\r?\n---[^\S\r\n]*(?:\r?\n|$)/, '');
+}
+function stripHtml(value) {
+    return value.replace(/<[^>]*>/g, '');
+}
+function stripMarkdown(value) {
+    return value
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/(\*\*|__)(.*?)\1/g, '$2')
+        .replace(/(\*|_)(.*?)\1/g, '$2')
+        .replace(/^#{1,6}\s+/gm, '')
+        .replace(/^>\s?/gm, '')
+        .replace(/^\s*(?:[-*+]|\d+\.)\s+/gm, '')
+        .replace(/^\s*[-*_]{3,}\s*$/gm, '');
+}
+function stripHtmlAndMarkdown(value) {
+    return stripMarkdown(stripHtml(value));
+}
+function getSummary(value, length = DEFAULT_SUMMARY_LENGTH) {
+    return stripHtmlAndMarkdown(value.replaceAll('"', "'").slice(0, length)).trim();
+}
+function getString(value) {
+    return typeof value === 'string' ? value : '';
+}
 export function getSlugFromURL(url) {
     return url.split('/')?.pop()?.replace('.html', '').trim();
 }
@@ -56,9 +85,11 @@ export function normalizeFrontmatter(pageData, options = {}) {
     const resolvedOptions = {
         defaultImage: DEFAULT_IMAGE,
         ensureSlug: true,
+        ensureSummary: false,
         imageSrcset: false,
         legacyCoverImage: 'reject',
         preserveRawUrl: true,
+        summaryLength: DEFAULT_SUMMARY_LENGTH,
         urlFormatter: urlFormat,
         ...options,
     };
@@ -80,6 +111,14 @@ export function normalizeFrontmatter(pageData, options = {}) {
     if (resolvedOptions.ensureSlug
         && !hasOwn(frontmatter, 'slug')) {
         frontmatter.slug = getSlugFromURL(frontmatter.url);
+    }
+    if (resolvedOptions.ensureSummary
+        && !hasOwn(frontmatter, 'summary')) {
+        const markdownSource = getString(pageData.src);
+        const sourceFallback = markdownSource ? stripFrontmatter(markdownSource) : '';
+        const description = getString(frontmatter.description);
+        const summarySource = description.trim() ? description : sourceFallback;
+        frontmatter.summary = getSummary(summarySource, resolvedOptions.summaryLength);
     }
     const image = getImage(frontmatter.image, resolvedOptions.defaultImage);
     const generatedSrcset = resolveImageSrcset(image, resolvedOptions.imageSrcset);

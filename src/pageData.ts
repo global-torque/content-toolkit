@@ -5,6 +5,8 @@ export interface FrontmatterLike extends Record<string, unknown> {
   url?: string;
   rawUrl?: string;
   slug?: string;
+  summary?: string;
+  description?: string;
   image?: string;
   srcset?: string;
   cover?: {
@@ -26,9 +28,11 @@ export type ImageSrcsetResolver = (imageUrl?: string) => string | undefined;
 export interface NormalizeFrontmatterOptions {
   defaultImage?: string;
   ensureSlug?: boolean;
+  ensureSummary?: boolean;
   imageSrcset?: boolean | ImageSrcsetResolver;
   legacyCoverImage?: 'reject' | 'map-to-top-level';
   preserveRawUrl?: boolean;
+  summaryLength?: number;
   urlFormatter?: (url: string) => string;
 }
 
@@ -39,9 +43,11 @@ export type NormalizedFrontmatter<TFrontmatter extends FrontmatterLike = Frontma
     srcset?: string;
     rawUrl?: string;
     slug?: string;
+    summary?: string;
   };
 
 const DEFAULT_IMAGE = '/images/sharing.png';
+const DEFAULT_SUMMARY_LENGTH = 200;
 
 export const legacyCoverNormalizeFrontmatterOptions: NormalizeFrontmatterOptions = {
   ensureSlug: true,
@@ -98,6 +104,40 @@ function mapLegacyCoverImage(frontmatter: FrontmatterLike) {
   delete frontmatter.cover;
 }
 
+function stripFrontmatter(source: string): string {
+  return source.replace(/^---[^\S\r\n]*\r?\n[\s\S]*?\r?\n---[^\S\r\n]*(?:\r?\n|$)/, '');
+}
+
+function stripHtml(value: string): string {
+  return value.replace(/<[^>]*>/g, '');
+}
+
+function stripMarkdown(value: string): string {
+  return value
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/(\*|_)(.*?)\1/g, '$2')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^>\s?/gm, '')
+    .replace(/^\s*(?:[-*+]|\d+\.)\s+/gm, '')
+    .replace(/^\s*[-*_]{3,}\s*$/gm, '');
+}
+
+function stripHtmlAndMarkdown(value: string): string {
+  return stripMarkdown(stripHtml(value));
+}
+
+function getSummary(value: string, length = DEFAULT_SUMMARY_LENGTH): string {
+  return stripHtmlAndMarkdown(value.replaceAll('"', "'").slice(0, length)).trim();
+}
+
+function getString(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
 export function getSlugFromURL(url: string) {
   return url.split('/')?.pop()?.replace('.html', '').trim();
 }
@@ -123,13 +163,15 @@ export function normalizeFrontmatter<TFrontmatter extends FrontmatterLike>(
 ): NormalizedFrontmatter<TFrontmatter> {
   const resolvedOptions: Required<Pick<
     NormalizeFrontmatterOptions,
-    'defaultImage' | 'ensureSlug' | 'legacyCoverImage' | 'preserveRawUrl' | 'urlFormatter'
+    'defaultImage' | 'ensureSlug' | 'ensureSummary' | 'legacyCoverImage' | 'preserveRawUrl' | 'summaryLength' | 'urlFormatter'
   >> & Pick<NormalizeFrontmatterOptions, 'imageSrcset'> = {
     defaultImage: DEFAULT_IMAGE,
     ensureSlug: true,
+    ensureSummary: false,
     imageSrcset: false,
     legacyCoverImage: 'reject',
     preserveRawUrl: true,
+    summaryLength: DEFAULT_SUMMARY_LENGTH,
     urlFormatter: urlFormat,
     ...options,
   };
@@ -161,6 +203,18 @@ export function normalizeFrontmatter<TFrontmatter extends FrontmatterLike>(
     && !hasOwn(frontmatter, 'slug')
   ) {
     frontmatter.slug = getSlugFromURL(frontmatter.url);
+  }
+
+  if (
+    resolvedOptions.ensureSummary
+    && !hasOwn(frontmatter, 'summary')
+  ) {
+    const markdownSource = getString(pageData.src);
+    const sourceFallback = markdownSource ? stripFrontmatter(markdownSource) : '';
+    const description = getString(frontmatter.description);
+    const summarySource = description.trim() ? description : sourceFallback;
+
+    frontmatter.summary = getSummary(summarySource, resolvedOptions.summaryLength);
   }
 
   const image = getImage(

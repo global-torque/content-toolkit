@@ -103,4 +103,58 @@ describe('normalizeFrontmatter', () => {
 
     expect(frontmatter.image).toBe('/images/default.webp');
   });
+
+  it('generates a summary from frontmatter description when requested', () => {
+    const frontmatter = normalizeFrontmatter({
+      url: '/resource-center/example.html',
+      frontmatter: {
+        description: 'A **quoted** "summary" with markdown.',
+      },
+    }, {
+      ensureSummary: true,
+    });
+
+    expect(frontmatter.summary).toBe("A quoted 'summary' with markdown.");
+  });
+
+  it('uses markdown source as a summary fallback only when available and strips frontmatter', () => {
+    const frontmatter = normalizeFrontmatter({
+      url: '/audio/example.html',
+      src: `---
+layout: page-detail
+title: Hidden frontmatter title
+tags:
+  - hidden
+---
+
+<audio title="Lecture" src="/upload/example.mp3" controls=""></audio>
+
+* Visible body point
+* Another body point`,
+      frontmatter: {
+        description: '   ',
+      },
+    }, {
+      ensureSummary: true,
+    });
+
+    expect(frontmatter.summary).toContain('Visible body point');
+    expect(frontmatter.summary).toContain('Another body point');
+    expect(frontmatter.summary).not.toContain('layout');
+    expect(frontmatter.summary).not.toContain('Hidden frontmatter title');
+    expect(frontmatter.summary).not.toContain('tags');
+  });
+
+  it('does not include undefined source text when source is unavailable', () => {
+    const frontmatter = normalizeFrontmatter({
+      url: '/empty-source.html',
+      frontmatter: {
+        description: '',
+      },
+    }, {
+      ensureSummary: true,
+    });
+
+    expect(frontmatter.summary).toBe('');
+  });
 });

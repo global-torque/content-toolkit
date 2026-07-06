@@ -2,6 +2,8 @@ export interface FrontmatterLike extends Record<string, unknown> {
     url?: string;
     rawUrl?: string;
     slug?: string;
+    summary?: string;
+    description?: string;
     image?: string;
     srcset?: string;
     cover?: {
@@ -20,9 +22,11 @@ export type ImageSrcsetResolver = (imageUrl?: string) => string | undefined;
 export interface NormalizeFrontmatterOptions {
     defaultImage?: string;
     ensureSlug?: boolean;
+    ensureSummary?: boolean;
     imageSrcset?: boolean | ImageSrcsetResolver;
     legacyCoverImage?: 'reject' | 'map-to-top-level';
     preserveRawUrl?: boolean;
+    summaryLength?: number;
     urlFormatter?: (url: string) => string;
 }
 export type NormalizedFrontmatter<TFrontmatter extends FrontmatterLike = FrontmatterLike> = Omit<TFrontmatter, 'url' | 'image'> & {
@@ -31,6 +35,7 @@ export type NormalizedFrontmatter<TFrontmatter extends FrontmatterLike = Frontma
     srcset?: string;
     rawUrl?: string;
     slug?: string;
+    summary?: string;
 };
 export declare const legacyCoverNormalizeFrontmatterOptions: NormalizeFrontmatterOptions;
 export declare function getSlugFromURL(url: string): string | undefined;
