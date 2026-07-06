@@ -1,4 +1,4 @@
-import type { BaseFrontmatter } from './types.ts';
+import type { BaseFrontmatter } from './types.js';
 export type ContentFilter<TFrontmatter extends BaseFrontmatter> = (data: TFrontmatter[]) => TFrontmatter[];
 export interface SortableFrontmatter extends BaseFrontmatter {
     publishDate?: string | number | Date;

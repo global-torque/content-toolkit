@@ -1,6 +1,6 @@
-import type { BaseFrontmatter } from './types.ts';
+import type { BaseFrontmatter } from './types.js';
 
-export type { BaseFrontmatter } from './types.ts';
+export type { BaseFrontmatter } from './types.js';
 
 export type ContentPathKey<TFrontmatter> = Extract<keyof TFrontmatter, string>;
 export type ContentNodeKind = 'page' | 'virtual';

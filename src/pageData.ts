@@ -1,5 +1,5 @@
-import { getFilerImageSrcset } from './filerImage.ts';
-import { transliteratedUrlFormat, urlFormat } from './url.ts';
+import { getFilerImageSrcset } from './filerImage.js';
+import { transliteratedUrlFormat, urlFormat } from './url.js';
 
 export interface FrontmatterLike extends Record<string, unknown> {
   url?: string;

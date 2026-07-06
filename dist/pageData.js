@@ -1,5 +1,5 @@
-import { getFilerImageSrcset } from "./filerImage.js";
-import { transliteratedUrlFormat, urlFormat } from "./url.js";
+import { getFilerImageSrcset } from './filerImage.js';
+import { transliteratedUrlFormat, urlFormat } from './url.js';
 const DEFAULT_IMAGE = '/images/sharing.png';
 export const legacyCoverNormalizeFrontmatterOptions = {
     ensureSlug: true,
