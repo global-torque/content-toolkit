@@ -1,0 +1,71 @@
+{
+  "name": "@global-torque/content-toolkit",
+  "private": false,
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "pnpm run build",
+    "prepare": "pnpm run build",
+    "test:run": "vitest run",
+    "test:unit": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^6.0.2",
+    "vitest": "4.1.7"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/global-torque/content-toolkit.git"
+  },
+  "homepage": "https://github.com/global-torque/content-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/global-torque/content-toolkit/issues"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "NOTICE.md",
+    "CHANGELOG.md",
+    "SECURITY.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./allData": {
+      "types": "./dist/allData.d.ts",
+      "import": "./dist/allData.js"
+    },
+    "./filerImage": {
+      "types": "./dist/filerImage.d.ts",
+      "import": "./dist/filerImage.js"
+    },
+    "./pageData": {
+      "types": "./dist/pageData.d.ts",
+      "import": "./dist/pageData.js"
+    },
+    "./pages": {
+      "types": "./dist/pages.d.ts",
+      "import": "./dist/pages.js"
+    },
+    "./url": {
+      "types": "./dist/url.d.ts",
+      "import": "./dist/url.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    }
+  }
+}
