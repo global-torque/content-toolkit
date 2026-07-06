@@ -104,8 +104,13 @@ function mapLegacyCoverImage(frontmatter: FrontmatterLike) {
   delete frontmatter.cover;
 }
 
-function stripFrontmatter(source: string): string {
-  return source.replace(/^---[^\S\r\n]*\r?\n[\s\S]*?\r?\n---[^\S\r\n]*(?:\r?\n|$)/, '');
+const FRONTMATTER_PATTERN = /^---[^\S\r\n]*\r?\n[\s\S]*?\r?\n---[^\S\r\n]*(?:\r?\n|$)/;
+
+function getMarkdownSummaryInput(source: string, length: number): string {
+  const frontmatterMatch = FRONTMATTER_PATTERN.exec(source);
+  const contentStart = frontmatterMatch ? frontmatterMatch[0].length : 0;
+
+  return source.slice(contentStart, contentStart + length);
 }
 
 function stripHtml(value: string): string {
@@ -210,7 +215,9 @@ export function normalizeFrontmatter<TFrontmatter extends FrontmatterLike>(
     && !hasOwn(frontmatter, 'summary')
   ) {
     const markdownSource = getString(pageData.src);
-    const sourceFallback = markdownSource ? stripFrontmatter(markdownSource) : '';
+    const sourceFallback = markdownSource
+      ? getMarkdownSummaryInput(markdownSource, resolvedOptions.summaryLength)
+      : '';
     const description = getString(frontmatter.description);
     const summarySource = description.trim() ? description : sourceFallback;
 

@@ -41,8 +41,11 @@ function mapLegacyCoverImage(frontmatter) {
     }
     delete frontmatter.cover;
 }
-function stripFrontmatter(source) {
-    return source.replace(/^---[^\S\r\n]*\r?\n[\s\S]*?\r?\n---[^\S\r\n]*(?:\r?\n|$)/, '');
+const FRONTMATTER_PATTERN = /^---[^\S\r\n]*\r?\n[\s\S]*?\r?\n---[^\S\r\n]*(?:\r?\n|$)/;
+function getMarkdownSummaryInput(source, length) {
+    const frontmatterMatch = FRONTMATTER_PATTERN.exec(source);
+    const contentStart = frontmatterMatch ? frontmatterMatch[0].length : 0;
+    return source.slice(contentStart, contentStart + length);
 }
 function stripHtml(value) {
     return value.replace(/<[^>]*>/g, '');
@@ -115,7 +118,9 @@ export function normalizeFrontmatter(pageData, options = {}) {
     if (resolvedOptions.ensureSummary
         && !hasOwn(frontmatter, 'summary')) {
         const markdownSource = getString(pageData.src);
-        const sourceFallback = markdownSource ? stripFrontmatter(markdownSource) : '';
+        const sourceFallback = markdownSource
+            ? getMarkdownSummaryInput(markdownSource, resolvedOptions.summaryLength)
+            : '';
         const description = getString(frontmatter.description);
         const summarySource = description.trim() ? description : sourceFallback;
         frontmatter.summary = getSummary(summarySource, resolvedOptions.summaryLength);
