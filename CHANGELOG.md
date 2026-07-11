@@ -2,9 +2,11 @@
 
 ## 0.2.0-beta.7 - Unreleased
 
-- Moved the independently reviewed 0.2 source to protected public `main` with
+- Prepared the independently reviewed 0.2 source for protected public `main` with
   SHA-pinned CI, public API governance, clean-source artifact manifests, and
   provenance workflow.
+- Removed a backtracking terminal-slash expression from caller-controlled path
+  normalization and added an adversarial long-separator regression.
 - Supersedes the dirty-tree beta.6 implementation artifact; beta.6 remains
   historical local evidence and must not be uploaded or retagged.
 
