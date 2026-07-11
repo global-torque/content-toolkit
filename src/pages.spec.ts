@@ -765,6 +765,7 @@ describe('createContentTree', () => {
       '/docs/guide',
     );
     expect(normalizeContentPath('/index')).toBe('/');
+    expect(normalizeContentPath(`/docs${'/'.repeat(10_000)}`)).toBe('/docs');
     const segments = splitContentPath('/', (path) => path);
     expectTypeOf(segments).toEqualTypeOf<readonly string[]>();
     expect(segments).toEqual([]);

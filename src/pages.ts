@@ -354,8 +354,11 @@ export function normalizeContentPath(
 
   normalized = normalized.replace(/\/{2,}/g, '/');
 
-  if (normalized.length > 1) {
-    normalized = normalized.replace(/\/+$/, '');
+  if (normalized.length > 1 && normalized.endsWith('/')) {
+    // Duplicate separators were collapsed above, so there can be only one
+    // terminal slash. Avoid running a backtracking regular expression over a
+    // caller-controlled path.
+    normalized = normalized.slice(0, -1);
   }
 
   if ((options.indexPage ?? 'collapse') === 'collapse') {
