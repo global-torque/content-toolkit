@@ -1,131 +1,155 @@
-export interface UrlFormatOptions {
-  transliterate?: boolean;
-  removeFolders?: readonly string[];
-  removeDuplicateSegments?: boolean;
-  lowercase?: boolean;
+/**
+ * Lossless path, query, and fragment parts of a content reference.
+ *
+ * @public
+ */
+export interface ContentPathReference {
+  /** Undecoded text before the first query or fragment delimiter. */
+  readonly path: string;
+  /** Query including `?`, or an empty string. */
+  readonly query: string;
+  /** Fragment including `#`, or an empty string. */
+  readonly fragment: string;
 }
 
-const CYRILLIC_TO_LATIN: Record<string, string> = {
-  а: 'a',
-  б: 'b',
-  в: 'v',
-  г: 'g',
-  д: 'd',
-  е: 'e',
-  ё: 'e',
-  ж: 'zh',
-  з: 'z',
-  и: 'i',
-  й: 'y',
-  к: 'k',
-  л: 'l',
-  м: 'm',
-  н: 'n',
-  о: 'o',
-  п: 'p',
-  р: 'r',
-  с: 's',
-  т: 't',
-  у: 'u',
-  ф: 'f',
-  х: 'h',
-  ц: 'ts',
-  ч: 'ch',
-  ш: 'sh',
-  щ: 'sch',
-  ъ: '',
-  ы: 'i',
-  ь: '',
-  э: 'e',
-  ю: 'yu',
-  я: 'ya',
-  є: 'ye',
-  і: 'i',
-  ї: 'yi',
-  ґ: 'g',
-};
+/**
+ * Stable context supplied to a host path-segment transform.
+ *
+ * @public
+ */
+export interface ContentPathSegmentContext {
+  /** Zero-based segment index. */
+  readonly index: number;
+  /** Frozen original non-empty path segments. */
+  readonly segments: readonly string[];
+}
 
-function transliterateCyrillic(value: string): string {
-  return value.replace(/[А-Яа-яЁёЄєІіЇїҐґ]/g, (char) => {
-    const replacement = CYRILLIC_TO_LATIN[char.toLowerCase()] ?? char;
-    return char === char.toUpperCase() ? replacement.toUpperCase() : replacement;
+/**
+ * Host policy for transforming exactly one safe path segment.
+ *
+ * @public
+ */
+export type ContentPathSegmentTransform = (
+  segment: string,
+  context: ContentPathSegmentContext,
+) => string;
+
+/**
+ * Options for formatting only the path portion of a content reference.
+ *
+ * @public
+ */
+export interface FormatContentPathOptions {
+  /** Called only for non-empty path segments; query and fragment are never passed. */
+  transformSegment?: ContentPathSegmentTransform;
+  /** Controls the trailing slash without changing query or fragment text. */
+  trailingSlash?: 'preserve' | 'remove' | 'ensure';
+}
+
+/**
+ * Split a path reference without decoding or normalizing any component.
+ *
+ * @public
+ */
+export function splitContentPathReference(value: string): ContentPathReference {
+  const fragmentIndex = value.indexOf('#');
+  const beforeFragment =
+    fragmentIndex === -1 ? value : value.slice(0, fragmentIndex);
+  const fragment = fragmentIndex === -1 ? '' : value.slice(fragmentIndex);
+  const queryIndex = beforeFragment.indexOf('?');
+
+  return Object.freeze({
+    path:
+      queryIndex === -1 ? beforeFragment : beforeFragment.slice(0, queryIndex),
+    query: queryIndex === -1 ? '' : beforeFragment.slice(queryIndex),
+    fragment,
   });
 }
 
-function normalizeFolderSegment(value: string): string {
-  return value.replace(/^\/+|\/+$/g, '').trim().toLowerCase();
-}
-
-function splitPath(value: string): { leading: boolean; trailing: boolean; segments: string[] } {
-  return {
-    leading: value.startsWith('/'),
-    trailing: value.length > 1 && value.endsWith('/'),
-    segments: value.split('/').filter(Boolean),
-  };
-}
-
-function joinPath(leading: boolean, trailing: boolean, segments: string[]): string {
-  const path = `${leading ? '/' : ''}${segments.join('/')}${trailing && segments.length ? '/' : ''}`;
-  return path || (leading ? '/' : '');
-}
-
-function removeFolderSegments(value: string, folders: readonly string[]): string {
-  if (folders.length === 0) {
-    return value;
-  }
-
-  const removeSet = new Set(folders.map(normalizeFolderSegment).filter(Boolean));
-  const { leading, trailing, segments } = splitPath(value);
-
-  return joinPath(
-    leading,
-    trailing,
-    segments.filter((segment) => !removeSet.has(normalizeFolderSegment(segment))),
-  );
-}
-
-function removeAdjacentDuplicateSegments(value: string): string {
-  const { leading, trailing, segments } = splitPath(value);
-  const deduped: string[] = [];
-
-  segments.forEach((segment) => {
-    if (deduped[deduped.length - 1]?.toLowerCase() === segment.toLowerCase()) {
-      return;
+function containsControlCharacter(value: string): boolean {
+  for (const character of value) {
+    const codePoint = character.codePointAt(0) ?? 0;
+    if (codePoint <= 0x1f || (codePoint >= 0x7f && codePoint <= 0x9f)) {
+      return true;
     }
-
-    deduped.push(segment);
-  });
-
-  return joinPath(leading, trailing, deduped);
+  }
+  return false;
 }
 
-export function urlFormat(url: string, options: UrlFormatOptions = {}): string {
-  const {
-    lowercase = true,
-    removeDuplicateSegments = false,
-    removeFolders = [],
-    transliterate = false,
-  } = options;
-
-  let cleanUrl = transliterate ? transliterateCyrillic(url.replace(/-/g, ' ')) : url;
-
-  cleanUrl = removeFolderSegments(cleanUrl, removeFolders);
-  cleanUrl = cleanUrl.replace(/[^\w./-]+/g, '-').replace(/\s+/g, '-');
-
-  if (lowercase) {
-    cleanUrl = cleanUrl.toLowerCase();
+function assertSegment(value: string, transformed: boolean): void {
+  const decodedDots = transformed ? value.replace(/%2e/gi, '.') : value;
+  if (
+    /[\\/?#]/.test(value) ||
+    containsControlCharacter(value) ||
+    decodedDots === '.' ||
+    decodedDots === '..'
+  ) {
+    throw new TypeError(
+      'A content path segment transform must return one safe path segment.',
+    );
   }
-
-  if (removeDuplicateSegments) {
-    cleanUrl = removeAdjacentDuplicateSegments(cleanUrl);
-  }
-
-  return cleanUrl || '/';
 }
 
-export function transliteratedUrlFormat(url: string, options: UrlFormatOptions = {}): string {
-  return urlFormat(url, {
-    ...options,
-    transliterate: options.transliterate ?? true,
-  });
+/**
+ * Format only the path portion of a relative or root-absolute content reference.
+ * Unicode and valid percent escapes are preserved byte-for-byte unless a host
+ * explicitly supplies a segment transform.
+ *
+ * @public
+ */
+export function formatContentPath(
+  value: string,
+  options: FormatContentPathOptions = {},
+): string {
+  const transformSegment = options.transformSegment;
+  const trailingSlash = options.trailingSlash ?? 'preserve';
+  if (
+    transformSegment !== undefined &&
+    typeof transformSegment !== 'function'
+  ) {
+    throw new TypeError('transformSegment must be a function when provided.');
+  }
+  if (!['preserve', 'remove', 'ensure'].includes(trailingSlash)) {
+    throw new TypeError('trailingSlash must be preserve, remove, or ensure.');
+  }
+  const { path, query, fragment } = splitContentPathReference(value);
+  const leadingSlash = path.startsWith('/');
+  const hadTrailingSlash = path.length > 1 && path.endsWith('/');
+  const rawSegments = path.split('/').filter((segment) => segment.length > 0);
+  const segmentContext = Object.freeze([...rawSegments]);
+  const segments = rawSegments
+    .map((segment, index) => {
+      const transformed = transformSegment
+        ? transformSegment(segment, {
+            index,
+            segments: segmentContext,
+          })
+        : segment;
+      if (typeof transformed !== 'string') {
+        throw new TypeError(
+          'A content path segment transform must return a string.',
+        );
+      }
+      assertSegment(transformed, transformSegment !== undefined);
+      return transformed;
+    })
+    .filter((segment) => segment.length > 0);
+
+  let formattedPath = `${leadingSlash ? '/' : ''}${segments.join('/')}`;
+  if (!formattedPath && leadingSlash) {
+    formattedPath = '/';
+  }
+
+  const shouldTrail =
+    trailingSlash === 'ensure' ||
+    (trailingSlash === 'preserve' && hadTrailingSlash);
+
+  if (formattedPath && formattedPath !== '/') {
+    formattedPath = formattedPath.replace(/\/+$/, '');
+    if (shouldTrail) {
+      formattedPath += '/';
+    }
+  }
+
+  return `${formattedPath}${query}${fragment}`;
 }

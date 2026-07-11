@@ -1,240 +1,135 @@
-import { getFilerImageSrcset } from './filerImage.js';
-import { transliteratedUrlFormat, urlFormat } from './url.js';
+import { createContentSnapshotWithOverrides } from './immutable.js';
+import {
+  readOptionalBooleanProperty,
+  readOptionalStringProperty,
+  readOwnDataProperty,
+} from './ownDataProperty.js';
+import { isPlainRecord } from './runtimeBrands.js';
+import type { ContentRecord, DeepReadonly } from './types.js';
+import { formatContentPath } from './url.js';
 
-export interface FrontmatterLike extends Record<string, unknown> {
-  url?: string;
-  rawUrl?: string;
-  slug?: string;
-  summary?: string;
-  description?: string;
-  image?: string;
-  srcset?: string;
-  cover?: {
-    image?: string;
-    srcset?: string;
-  };
+/**
+ * Generic structured frontmatter accepted by the normalizer.
+ *
+ * @public
+ */
+export interface FrontmatterInput {
+  /** Optional frontmatter URL used only when page data has no path. */
+  readonly url?: string;
+  /** Optional existing source path preserved by the normalizer. */
+  readonly rawUrl?: string;
+  /** Optional draft marker copied without interpretation. */
+  readonly draft?: boolean;
 }
 
-export interface PageDataLike {
-  frontmatter: FrontmatterLike;
-  relativePath?: string;
-  url?: string;
-  filePath?: string;
-  src?: string;
+/**
+ * Framework-neutral page data needed to derive a content URL.
+ *
+ * @public
+ */
+export interface PageDataLike<TFrontmatter extends object = FrontmatterInput> {
+  /** Structured host frontmatter. */
+  readonly frontmatter: TFrontmatter;
+  /** Root-relative Markdown path used when no explicit page URL exists. */
+  readonly relativePath?: string;
+  /** Preferred already-resolved page URL. */
+  readonly url?: string;
+  /** Optional host file path retained only for structural compatibility. */
+  readonly filePath?: string;
 }
 
-export type ImageSrcsetResolver = (imageUrl?: string) => string | undefined;
-
+/**
+ * Host-controlled frontmatter normalization policy.
+ *
+ * @public
+ */
 export interface NormalizeFrontmatterOptions {
-  defaultImage?: string;
-  ensureSlug?: boolean;
-  ensureSummary?: boolean;
-  imageSrcset?: boolean | ImageSrcsetResolver;
-  legacyCoverImage?: 'reject' | 'map-to-top-level';
+  /** Host-owned public path policy. The default preserves path bytes. */
+  formatPath?: (path: string) => string;
+  /** Include the unformatted source path when the input did not define rawUrl. */
   preserveRawUrl?: boolean;
-  summaryLength?: number;
-  urlFormatter?: (url: string) => string;
 }
 
-export type NormalizedFrontmatter<TFrontmatter extends FrontmatterLike = FrontmatterLike> =
-  Omit<TFrontmatter, 'url' | 'image'> & {
-    url: string;
-    image: string;
-    srcset?: string;
-    rawUrl?: string;
-    slug?: string;
-    summary?: string;
-  };
-
-const DEFAULT_IMAGE = '/images/sharing.png';
-const DEFAULT_SUMMARY_LENGTH = 200;
-
-export const legacyCoverNormalizeFrontmatterOptions: NormalizeFrontmatterOptions = {
-  ensureSlug: true,
-  imageSrcset: false,
-  legacyCoverImage: 'map-to-top-level',
-  preserveRawUrl: true,
-  urlFormatter: transliteratedUrlFormat,
+/**
+ * Detached deep-readonly frontmatter with a required public URL.
+ *
+ * @public
+ */
+export type NormalizedFrontmatter<TFrontmatter extends object> = {
+  readonly [
+    TKey in keyof (Omit<TFrontmatter, 'url' | 'rawUrl'> & ContentRecord)
+  ]: DeepReadonly<(Omit<TFrontmatter, 'url' | 'rawUrl'> & ContentRecord)[TKey]>;
 };
 
-function hasOwn(object: object, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(object, key);
+function pathFromRelativeFile(relativePath: string): string {
+  const normalized = relativePath.replaceAll('\\', '/');
+  const withoutMarkdownExtension = normalized.replace(/\.md$/i, '');
+  const withoutIndex = withoutMarkdownExtension.replace(/(?:^|\/)index$/i, '');
+  return `/${withoutIndex}`.replace(/\/{2,}/g, '/') || '/';
 }
 
-function resolveImageSrcset(
-  imageUrl: string | undefined,
-  resolver: boolean | ImageSrcsetResolver | undefined,
-) {
-  if (typeof resolver === 'function') {
-    return resolver(imageUrl);
+function getRawPath<TFrontmatter extends object>(
+  pageData: PageDataLike<TFrontmatter>,
+  frontmatter: TFrontmatter,
+): string {
+  const pageUrl = readOwnDataProperty(pageData, 'url');
+  if (typeof pageUrl === 'string' && pageUrl.trim() !== '') {
+    return pageUrl;
+  }
+  const relativePath = readOwnDataProperty(pageData, 'relativePath');
+  if (typeof relativePath === 'string' && relativePath.trim() !== '') {
+    return pathFromRelativeFile(relativePath);
+  }
+  const frontmatterUrl = readOwnDataProperty(frontmatter, 'url');
+  if (typeof frontmatterUrl === 'string' && frontmatterUrl.trim() !== '') {
+    return frontmatterUrl;
   }
 
-  if (resolver === true) {
-    return getFilerImageSrcset(imageUrl);
-  }
-
-  return undefined;
+  throw new TypeError(
+    'Content frontmatter requires pageData.url, relativePath, or frontmatter.url.',
+  );
 }
 
-function isLegacyCoverFrontmatter(
-  cover: unknown,
-): cover is NonNullable<FrontmatterLike['cover']> {
-  return typeof cover === 'object' && cover !== null;
-}
-
-function mapLegacyCoverImage(frontmatter: FrontmatterLike) {
-  if (!hasOwn(frontmatter, 'cover')) {
-    return;
-  }
-
-  const cover = frontmatter.cover;
-  if (!isLegacyCoverFrontmatter(cover)) {
-    delete frontmatter.cover;
-    return;
-  }
-
-  if (!hasOwn(frontmatter, 'image') && cover.image) {
-    frontmatter.image = cover.image;
-  }
-
-  if (!hasOwn(frontmatter, 'srcset') && cover.srcset) {
-    frontmatter.srcset = cover.srcset;
-  }
-
-  delete frontmatter.cover;
-}
-
-const FRONTMATTER_PATTERN = /^---[^\S\r\n]*\r?\n[\s\S]*?\r?\n---[^\S\r\n]*(?:\r?\n|$)/;
-
-function getMarkdownSummaryInput(source: string, length: number): string {
-  const frontmatterMatch = FRONTMATTER_PATTERN.exec(source);
-  const contentStart = frontmatterMatch ? frontmatterMatch[0].length : 0;
-
-  return source.slice(contentStart, contentStart + length);
-}
-
-function stripHtml(value: string): string {
-  return value.replace(/<[^>]*>/g, '');
-}
-
-function stripMarkdown(value: string): string {
-  return value
-    .replace(/```[\s\S]*?```/g, '')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/(\*\*|__)(.*?)\1/g, '$2')
-    .replace(/(\*|_)(.*?)\1/g, '$2')
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/^>\s?/gm, '')
-    .replace(/^\s*(?:[-*+]|\d+\.)\s+/gm, '')
-    .replace(/^\s*[-*_]{3,}\s*$/gm, '');
-}
-
-function stripHtmlAndMarkdown(value: string): string {
-  return stripMarkdown(stripHtml(value));
-}
-
-function getSummary(value: string, length = DEFAULT_SUMMARY_LENGTH): string {
-  return stripHtmlAndMarkdown(value.replaceAll('"', "'").slice(0, length)).trim();
-}
-
-function getString(value: unknown): string {
-  return typeof value === 'string' ? value : '';
-}
-
-export function getSlugFromURL(url: string) {
-  return url.split('/')?.pop()?.replace('.html', '').trim();
-}
-
-export function getImage(img?: string, defaultImage = DEFAULT_IMAGE) {
-  return img === undefined || img === '' ? defaultImage : img;
-}
-
-export function getUrl(
-  pageData: PageDataLike,
-  formatter: (url: string) => string = urlFormat,
-) {
-  const rawUrl = pageData.relativePath
-    ? `/${pageData.relativePath.replace(/index\.md$/, '').replace(/\.md$/, '')}`
-    : (pageData.url ?? '');
-
-  return formatter(rawUrl);
-}
-
-export function normalizeFrontmatter<TFrontmatter extends FrontmatterLike>(
-  pageData: PageDataLike & { frontmatter: TFrontmatter },
+/**
+ * Return a detached normalized record without mutating page data or frontmatter.
+ *
+ * @public
+ */
+export function normalizeFrontmatter<TFrontmatter extends object>(
+  pageData: PageDataLike<TFrontmatter>,
   options: NormalizeFrontmatterOptions = {},
 ): NormalizedFrontmatter<TFrontmatter> {
-  const resolvedOptions: Required<Pick<
-    NormalizeFrontmatterOptions,
-    'defaultImage' | 'ensureSlug' | 'ensureSummary' | 'legacyCoverImage' | 'preserveRawUrl' | 'summaryLength' | 'urlFormatter'
-  >> & Pick<NormalizeFrontmatterOptions, 'imageSrcset'> = {
-    defaultImage: DEFAULT_IMAGE,
-    ensureSlug: true,
-    ensureSummary: false,
-    imageSrcset: false,
-    legacyCoverImage: 'reject',
-    preserveRawUrl: true,
-    summaryLength: DEFAULT_SUMMARY_LENGTH,
-    urlFormatter: urlFormat,
-    ...options,
-  };
-  const { frontmatter } = pageData;
+  const frontmatter = readOwnDataProperty(pageData, 'frontmatter');
+  if (frontmatter === null || typeof frontmatter !== 'object') {
+    throw new TypeError('Page data must contain structured frontmatter.');
+  }
+  if (!isPlainRecord(frontmatter)) {
+    throw new TypeError('Page data frontmatter must be a plain object.');
+  }
+  readOptionalStringProperty(frontmatter, 'url');
+  const existingRawUrl = readOptionalStringProperty(frontmatter, 'rawUrl');
+  const draft = readOptionalBooleanProperty(frontmatter, 'draft');
+  const rawPath = getRawPath(pageData, frontmatter as TFrontmatter);
+  const url = (options.formatPath ?? formatContentPath)(rawPath);
+  if (typeof url !== 'string' || url.trim() === '') {
+    throw new TypeError(
+      'Content path formatters must return a non-empty string.',
+    );
+  }
+  const preserveRawUrl = options.preserveRawUrl ?? true;
+  const overrides = new Map<string | symbol, unknown>([['url', url]]);
 
-  if (hasOwn(frontmatter, 'cover')) {
-    if (resolvedOptions.legacyCoverImage === 'reject') {
-      throw new Error('Frontmatter "cover" is not supported. Use top-level image/srcset instead.');
-    }
-
-    mapLegacyCoverImage(frontmatter);
+  if (existingRawUrl !== undefined) {
+    overrides.set('rawUrl', existingRawUrl);
+  } else if (preserveRawUrl && rawPath !== url) {
+    overrides.set('rawUrl', rawPath);
+  }
+  if (draft !== undefined) {
+    overrides.set('draft', draft);
   }
 
-  const rawUrl = pageData.url
-    ?? (pageData.relativePath ? `/${pageData.relativePath.replace(/index\.md$/, '').replace(/\.md$/, '')}` : undefined);
-
-  frontmatter.url = getUrl(pageData, resolvedOptions.urlFormatter);
-
-  if (
-    resolvedOptions.preserveRawUrl
-    && !hasOwn(frontmatter, 'rawUrl')
-    && rawUrl
-  ) {
-    frontmatter.rawUrl = rawUrl;
-  }
-
-  if (
-    resolvedOptions.ensureSlug
-    && !hasOwn(frontmatter, 'slug')
-  ) {
-    frontmatter.slug = getSlugFromURL(frontmatter.url);
-  }
-
-  if (
-    resolvedOptions.ensureSummary
-    && !hasOwn(frontmatter, 'summary')
-  ) {
-    const markdownSource = getString(pageData.src);
-    const sourceFallback = markdownSource
-      ? getMarkdownSummaryInput(markdownSource, resolvedOptions.summaryLength)
-      : '';
-    const description = getString(frontmatter.description);
-    const summarySource = description.trim() ? description : sourceFallback;
-
-    frontmatter.summary = getSummary(summarySource, resolvedOptions.summaryLength);
-  }
-
-  const image = getImage(
-    frontmatter.image,
-    resolvedOptions.defaultImage,
-  );
-  const generatedSrcset = resolveImageSrcset(image, resolvedOptions.imageSrcset);
-
-  frontmatter.image = image;
-
-  if (generatedSrcset || frontmatter.srcset) {
-    frontmatter.srcset = generatedSrcset ?? frontmatter.srcset;
-  }
-
-  return frontmatter as NormalizedFrontmatter<TFrontmatter>;
+  return createContentSnapshotWithOverrides(
+    frontmatter as TFrontmatter,
+    overrides,
+  ) as NormalizedFrontmatter<TFrontmatter>;
 }
