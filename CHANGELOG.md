@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Quarantined the unsupported pre-0.2 default-branch bridge, removed mutable
+  installation guidance, and disabled publication pending a reviewed release.
+
 ## 0.1.0
 
 - Prepared content helpers for Global Torque public release with explicit

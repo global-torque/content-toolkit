@@ -1,26 +1,22 @@
 # @global-torque/content-toolkit
 
+> [!CAUTION]
+> This default-branch source is a quarantined pre-0.2 bridge, not an approved
+> release candidate. Do not install it from GitHub, a branch, or npm. Use only
+> a future immutable prerelease asset after its checksum, consumer evidence,
+> and public release review are complete.
+
 Framework-independent content utilities for Global Torque VitePress and static
 content consumers.
 
 This package combines the former `content-types` contracts and `content-core`
 helpers into one public package.
 
-## Install
+## Installation Status
 
-```sh
-pnpm add @global-torque/content-toolkit
-```
-
-Before npm publication, pinned GitHub bridge installs may use:
-
-```json
-{
-  "dependencies": {
-    "@global-torque/content-toolkit": "github:global-torque/content-toolkit#master"
-  }
-}
-```
+There is no supported installation command for this source revision. Mutable
+GitHub dependencies and default-branch installs are prohibited. Wait for an
+approved immutable prerelease asset and its published integrity evidence.
 
 ## Usage
 
