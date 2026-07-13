@@ -120,6 +120,10 @@
   index-page policy, readonly snapshots, and stable non-mutating sorting.
 - Never publish this candidate. Its recorded local tarball SHA-512 was
   `08416586d28b09e1c4d0663a31e23005b927682ada7e2af840e4adb95bba248398e2332934d54828eb6a7c26a4dc5393c998d605bb1f2a2f620c5f2df84ef8ea`.
+## Unreleased
+
+- Quarantined the unsupported pre-0.2 default-branch bridge, removed mutable
+  installation guidance, and disabled publication pending a reviewed release.
 
 ## 0.1.0
 
