@@ -19,7 +19,7 @@ const EXPECTED_INSTALL_DEPENDENCIES = new Map([
   [
     '@global-torque/vitepress-toolkit',
     [
-      '@global-torque/content-toolkit@https://github.com/global-torque/content-toolkit/releases/download/v0.2.0-beta.7/global-torque-content-toolkit-0.2.0-beta.7.tgz',
+      '@global-torque/content-toolkit@0.2.0-beta.8',
       'vitepress@1.6.4',
       'vue@3.5.39',
     ],

@@ -157,7 +157,7 @@ const EXPECTED_EXPORT_SUBPATHS = new Map([
 const EXPECTED_PACKAGE_VERSIONS = new Map([
   ['@global-torque/admin-toolkit', '0.2.0-beta.2'],
   ['@global-torque/client-error-handling', '0.1.0-beta.3'],
-  ['@global-torque/content-toolkit', '0.2.0-beta.7'],
+  ['@global-torque/content-toolkit', '0.2.0-beta.8'],
   ['@global-torque/design-tokens', '0.1.0-beta.2'],
   ['@global-torque/markdown-it-wikilinks', '0.2.0-beta.3'],
   ['@global-torque/vitepress-toolkit', '0.2.0-beta.6'],
@@ -217,7 +217,7 @@ const EXPECTED_RELEASE_DEPENDENCIES = new Map([
   [
     '@global-torque/vitepress-toolkit',
     [
-      '@global-torque/content-toolkit@https://github.com/global-torque/content-toolkit/releases/download/v0.2.0-beta.7/global-torque-content-toolkit-0.2.0-beta.7.tgz',
+      '@global-torque/content-toolkit@0.2.0-beta.8',
       'vitepress@1.6.4',
       'vue@3.5.39',
     ],

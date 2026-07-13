@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.2.0-beta.7 - Unreleased
+## 0.2.0-beta.8 - 2026-07-13
+
+- Restored the independently reviewed public source after the temporary
+  default-branch quarantine and repinned CI to the current governance workflow.
+- Minted a new prerelease identity so the superseded beta.7 candidate bytes are
+  never reused for npm publication.
+
+## 0.2.0-beta.7 - Superseded local candidate
 
 - Prepared the independently reviewed 0.2 source for protected public `main` with
   SHA-pinned CI, public API governance, clean-source artifact manifests, and
@@ -120,10 +127,6 @@
   index-page policy, readonly snapshots, and stable non-mutating sorting.
 - Never publish this candidate. Its recorded local tarball SHA-512 was
   `08416586d28b09e1c4d0663a31e23005b927682ada7e2af840e4adb95bba248398e2332934d54828eb6a7c26a4dc5393c998d605bb1f2a2f620c5f2df84ef8ea`.
-## Unreleased
-
-- Quarantined the unsupported pre-0.2 default-branch bridge, removed mutable
-  installation guidance, and disabled publication pending a reviewed release.
 
 ## 0.1.0
 

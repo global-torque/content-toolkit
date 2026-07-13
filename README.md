@@ -1,16 +1,7 @@
 # @global-torque/content-toolkit
 
-> **Public 0.2 beta candidate:** the source is under review. Do not install a
-> mutable branch or reuse the earlier dirty-tree beta.6 artifact. Promotion
-> requires the protected-tag beta.7 asset and named-consumer evidence.
-> [!CAUTION]
-> This default-branch source is a quarantined pre-0.2 bridge, not an approved
-> release candidate. Do not install it from GitHub, a branch, or npm. Use only
-> a future immutable prerelease asset after its checksum, consumer evidence,
-> and public release review are complete.
-
-Framework-independent content utilities for Global Torque VitePress and static
-content consumers.
+> **Public prerelease:** `0.2.0-beta.8` is the first npm-published candidate.
+> Pin the exact version while the 0.2 contract remains in beta.
 
 Framework-independent, immutable helpers for content records, trees, paths,
 sorting, filtering, and image srcsets. Hosts own article fields, slug policy,
@@ -33,8 +24,9 @@ folder taxonomy is required or supplied by this package.
 
 ## Install
 
-After the beta.7 prerelease is published, install its immutable release asset
-rather than a mutable Git branch. No npm registry version exists yet.
+```sh
+pnpm add @global-torque/content-toolkit@0.2.0-beta.8
+```
 
 ## Normalize content data
 
@@ -82,11 +74,6 @@ assert.deepEqual(record, { title: 'Overview', url: '/guides/Overview' });
 assert.equal(Object.isFrozen(record), true);
 assert.equal(input.frontmatter.title, 'Overview');
 ```
-## Installation Status
-
-There is no supported installation command for this source revision. Mutable
-GitHub dependencies and default-branch installs are prohibited. Wait for an
-approved immutable prerelease asset and its published integrity evidence.
 
 ## Content tree
 
