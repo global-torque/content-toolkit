@@ -1,7 +1,7 @@
 {
   "name": "@global-torque/content-toolkit",
   "private": false,
-  "version": "0.2.0-beta.7",
+  "version": "0.2.0-beta.8",
   "description": "Immutable content records, trees, paths, ordering, and host-configured image srcsets.",
   "keywords": [
     "content",
