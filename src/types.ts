@@ -1,49 +1,53 @@
-export interface BaseFrontmatter {
-  url: string;
-  rawUrl?: string;
-  title?: string;
-  description?: string;
-  slug?: string;
-  image: string;
-  srcset?: string;
-  author?: string | string[];
-  lang?: string;
-  draft?: boolean;
-  tags?: string[];
-  layout?: string;
-  order?: number;
-}
+/**
+ * Date view without methods that mutate its internal timestamp.
+ *
+ * @public
+ */
+export type ImmutableDate = Omit<
+  Date,
+  | 'setDate'
+  | 'setFullYear'
+  | 'setHours'
+  | 'setMilliseconds'
+  | 'setMinutes'
+  | 'setMonth'
+  | 'setSeconds'
+  | 'setTime'
+  | 'setUTCDate'
+  | 'setUTCFullYear'
+  | 'setUTCHours'
+  | 'setUTCMilliseconds'
+  | 'setUTCMinutes'
+  | 'setUTCMonth'
+  | 'setUTCSeconds'
+  | 'setYear'
+>;
 
-export interface RawFrontmatterInput extends Partial<BaseFrontmatter> {
-  [key: string]: unknown;
-}
+/**
+ * Recursively readonly view returned for detached content snapshots.
+ *
+ * @public
+ */
+export type DeepReadonly<T> = T extends (...args: never[]) => unknown
+  ? T
+  : T extends Date
+    ? ImmutableDate
+    : T extends readonly unknown[]
+      ? { readonly [TKey in keyof T]: DeepReadonly<T[TKey]> }
+      : T extends object
+        ? { readonly [TKey in keyof T]: DeepReadonly<T[TKey]> }
+        : T;
 
-export interface ArticleFrontmatter extends BaseFrontmatter {
-  subTitle?: string;
-  subtitle?: string;
-  publishDate?: string;
-  updateDate?: string;
-  is_main?: boolean;
-  route?: string;
-  pageSrc?: string;
-  products?: string;
-  summary?: string;
-  menuIcon?: string;
-  position?: string;
-}
-
-export interface WebdevelopFrontmatter extends ArticleFrontmatter {
-  title: string;
-  description: string;
-  publishDate: string;
-  image: string;
-  author?: string;
-  is_main: boolean;
-  mtime?: number;
-}
-
-export interface IFrontmatter extends WebdevelopFrontmatter {}
-
-export interface IPostContent extends IFrontmatter {
-  content: string;
+/**
+ * Minimal record understood by the framework-independent content helpers.
+ *
+ * @public
+ */
+export interface ContentRecord {
+  /** Public content path used for tree placement and navigation. */
+  readonly url: string;
+  /** Optional source path before host-specific public-path transformation. */
+  readonly rawUrl?: string;
+  /** Draft records are excluded by default by collection and tree helpers. */
+  readonly draft?: boolean;
 }
