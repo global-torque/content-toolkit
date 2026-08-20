@@ -71,4 +71,64 @@ describe('createImageSrcset', () => {
     ).toBe('/varying 640w');
     expect(widthReads).toBe(1);
   });
+
+  it('rejects URLs that cannot survive image-candidate parsing', () => {
+    for (const unsafe of [
+      '/img/hero shot.jpg',
+      '/img/hero\tshot.jpg',
+      '/img/hero\nshot.jpg',
+      '/img/hero\fshot.jpg',
+      '/img/hero\rshot.jpg',
+      '/img/small.jpg,',
+      ',/img/small.jpg',
+      ',',
+    ]) {
+      expect(() =>
+        createImageSrcset({
+          variants: [{ name: 'only', width: 320 }],
+          buildUrl: () => unsafe,
+        }),
+      ).toThrow(TypeError);
+    }
+
+    expect(() =>
+      createImageSrcset({
+        variants: [
+          { name: 'small', width: 320 },
+          { name: 'large', width: 960 },
+        ],
+        buildUrl: ({ name }) => `/img/hero shot-${name}.jpg`,
+      }),
+    ).toThrow(/must not contain whitespace/);
+  });
+
+  it('keeps internal commas and surrounding whitespace usable', () => {
+    expect(
+      createImageSrcset({
+        variants: [
+          { name: 'small', width: 320 },
+          { name: 'large', width: 960 },
+        ],
+        buildUrl: ({ name, width }) =>
+          `https://images.example/upload/w_${String(width)},c_fill/${name}.jpg`,
+      }),
+    ).toBe(
+      'https://images.example/upload/w_320,c_fill/small.jpg 320w, ' +
+        'https://images.example/upload/w_960,c_fill/large.jpg 960w',
+    );
+
+    expect(
+      createImageSrcset({
+        variants: [{ name: 'padded', width: 320 }],
+        buildUrl: () => '  /img/padded.jpg  ',
+      }),
+    ).toBe('/img/padded.jpg 320w');
+
+    expect(
+      createImageSrcset({
+        variants: [{ name: 'blank', width: 320 }],
+        buildUrl: () => '   ',
+      }),
+    ).toBeUndefined();
+  });
 });

@@ -24,6 +24,18 @@ export interface CreateImageSrcsetOptions<
   readonly buildUrl: (variant: TVariant, index: number) => string | undefined;
 }
 
+const ASCII_WHITESPACE = /[\t\n\f\r ]/;
+
+function assertSrcsetUrl(url: string): void {
+  // An image candidate ends at ASCII whitespace and is comma-delimited, so a URL
+  // carrying either resolves to a different candidate than the host supplied.
+  if (ASCII_WHITESPACE.test(url) || url.startsWith(',') || url.endsWith(',')) {
+    throw new TypeError(
+      `Image srcset URLs must not contain whitespace or start or end with a comma: ${JSON.stringify(url)}.`,
+    );
+  }
+}
+
 /**
  * Build a deterministic width-descriptor srcset from host-owned variants.
  *
@@ -56,7 +68,11 @@ export function createImageSrcset<
         );
       }
       const url = builtUrl?.trim();
-      return url ? `${url} ${String(width)}w` : undefined;
+      if (!url) {
+        return undefined;
+      }
+      assertSrcsetUrl(url);
+      return `${url} ${String(width)}w`;
     })
     .filter((entry): entry is string => entry !== undefined);
 

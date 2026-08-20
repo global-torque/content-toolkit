@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Rejected image-srcset URLs that contain ASCII whitespace or start or end with
+  a comma. Such a URL previously produced an attribute that image-candidate
+  parsing resolved into different URLs than the host built, dropping or
+  substituting variants without any error. Internal commas remain valid.
+
 ## 0.2.0-beta.8 - 2026-07-13
 
 - Restored the independently reviewed public source after the temporary

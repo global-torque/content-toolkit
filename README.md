@@ -120,8 +120,11 @@ const srcset = createImageSrcset({
 ```
 
 Hosts choose variant names, positive unique widths, hostnames, and URLs. The
-toolkit validates width descriptors and omits variants whose URL builder returns
-an empty value; it does not choose image-service policy.
+toolkit validates width descriptors, rejects URLs that cannot appear in an image
+candidate, and omits variants whose URL builder returns an empty value; it does
+not choose image-service policy. A URL is rejected when it contains ASCII
+whitespace or starts or ends with a comma; internal commas, such as those in
+image-service transform segments, are preserved.
 
 ## Public imports
 
