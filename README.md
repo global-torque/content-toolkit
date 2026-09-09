@@ -1,7 +1,6 @@
 # @global-torque/content-toolkit
 
-> **Public prerelease:** `0.2.0-beta.8` is the first npm-published candidate.
-> Pin the exact version while the 0.2 contract remains in beta.
+> **Public release:** `0.2.0`. Install the versioned package from npm.
 
 Framework-independent, immutable helpers for content records, trees, paths,
 sorting, filtering, and image srcsets. Hosts own article fields, slug policy,
@@ -25,7 +24,7 @@ folder taxonomy is required or supplied by this package.
 ## Install
 
 ```sh
-pnpm add @global-torque/content-toolkit@0.2.0-beta.8
+pnpm add @global-torque/content-toolkit@0.2.0
 ```
 
 ## Normalize content data
