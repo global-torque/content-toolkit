@@ -2,11 +2,10 @@
 
 ## Supported versions
 
-| Version               | Security fixes                                   |
-| --------------------- | ------------------------------------------------ |
-| Latest `0.2.0-beta.*` | Yes, after its protected prerelease is published |
-| Older `0.2.0-beta.*`  | No; upgrade to the latest reviewed prerelease    |
-| `0.1.x` and older     | No                                               |
+| Version                        | Security fixes                |
+| ------------------------------ | ----------------------------- |
+| Latest `0.2.x`                 | Supported                     |
+| Older versions and prereleases | Upgrade to the latest release |
 
 Report security issues for the public package through:
 
